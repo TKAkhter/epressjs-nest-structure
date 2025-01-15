@@ -6,7 +6,7 @@ import { logger } from "@/common/winston/winston";
 import { CustomRequest } from "@/types/request";
 
 /**
- * Error handler middleware for catching and logging errors.
+ * Error middleware for catching and logging errors.
  *
  * Params:
  * - err: The error object (could be a HttpError or general error).
@@ -18,7 +18,7 @@ import { CustomRequest } from "@/types/request";
  * - Responds with the appropriate status code and error message in the response.
  * - If not in production, detailed error info is included (method, URL, stack trace).
  */
-export const errorHandler = (
+export const errorMiddleware = (
   err: Error | HttpError,
   req: CustomRequest,
   res: Response,
@@ -38,7 +38,7 @@ export const errorHandler = (
   const { method } = req;
   const url = req.originalUrl;
 
-  const { stack } = err;
+  // Const { stack } = err;
 
   const errorPayload = {
     status: statusCode,
@@ -48,7 +48,7 @@ export const errorHandler = (
     user,
     name,
     details,
-    stack,
+    // Stack,
   };
 
   logger.error("Error Middleware", errorPayload);
@@ -56,7 +56,7 @@ export const errorHandler = (
   const responsePayload = {
     status: statusCode,
     message,
-    ...(env.NODE_ENV !== "production" && { method, url, user, name, details, stack }),
+    ...(env.NODE_ENV !== "production" && { method, url, user, name, details /* Stack */ }),
   };
 
   return res.status(statusCode).json(responsePayload);

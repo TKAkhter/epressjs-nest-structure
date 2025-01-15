@@ -1,5 +1,5 @@
 import { NextFunction, Response } from "express";
-import { AuthDto, RegisterDto } from "@/entities/auth/auth.dto";
+import { AuthDto, RegisterDto, ResetPasswordDto } from "@/entities/auth/auth.dto";
 import { AuthService } from "@/entities/auth/auth.services";
 import { logger } from "@/common/winston/winston";
 import { CustomRequest } from "@/types/request";
@@ -173,27 +173,26 @@ export class AuthController {
    * @param next - Next middleware function
    */
   resetPassword = async (req: CustomRequest, res: Response, next: NextFunction): Promise<void> => {
-    const { authorization } = req.headers;
-    const { email, currentPassword, password } = req.body;
+    const { resetToken, password, confirmPassword } = req.body;
     const { user } = req;
-    logger.info(`${this.logFileName} Reset password API invoked`, { email, user });
+    logger.info(`${this.logFileName} Reset password API invoked`, { resetToken, user });
 
+    const resetPasswordDto: ResetPasswordDto = {
+      password: password as string,
+      confirmPassword: confirmPassword as string,
+      resetToken: resetToken as string,
+    };
     try {
-      const message = await this.authService.resetPassword(
-        authorization,
-        email,
-        currentPassword,
-        password,
-      );
+      const message = await this.authService.resetPassword(resetPasswordDto);
       logger.info(`${this.logFileName} Reset password successful`, {
-        email,
+        resetToken,
         user,
       });
       res.json(message);
     } catch (error) {
       if (error instanceof Error) {
         logger.error(`${this.logFileName} Reset password API error`, {
-          email,
+          resetToken,
           error: error.message,
           user,
         });

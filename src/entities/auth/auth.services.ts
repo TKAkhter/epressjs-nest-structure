@@ -1,20 +1,27 @@
-import { compare } from "bcrypt";
+import { compare, hash } from "bcrypt";
 import { logger } from "@/common/winston/winston";
-import { AuthDto, RegisterDto } from "@/entities/auth/auth.dto";
+import { AuthDto, RegisterDto, ResetPasswordDto } from "@/entities/auth/auth.dto";
 import { generateToken, verifyToken } from "@/common/jwt/jwt";
 import createHttpError from "http-errors";
 import { StatusCodes } from "http-status-codes";
 import { UsersService } from "@/entities/users/users.service";
+import { sendMail } from "@/common/mail-sender/mail-sender";
+import { GenericRepository } from "@/common/repository";
+import { CreateUsersDto, UpdateUsersDto, UsersDto, UsersModel } from "../users/users.dto";
+import { env } from "@/config/env";
+import { createTemplate } from "@/template/create-template";
 
 export class AuthService {
   private collectionName: string;
   private logFileName: string;
   private usersService: UsersService;
+  private usersRepository: GenericRepository<UsersDto, UpdateUsersDto, CreateUsersDto>;
 
   constructor(logFileName: string) {
     this.collectionName = "user";
     this.logFileName = logFileName;
     this.usersService = new UsersService(this.collectionName, `[${this.collectionName} Service]`);
+    this.usersRepository = new GenericRepository(UsersModel, `[${this.collectionName} Repository]`);
   }
 
   /**
@@ -195,8 +202,37 @@ export class AuthService {
         });
       }
 
-      logger.info(`${this.logFileName} Email reset link successfully sent`, { email });
-      return { message: "Reset link sent. Check you email" };
+      const resetToken = generateToken({
+        id: user.uuid,
+        username: user.username,
+        name: user.name,
+        email: user.email,
+      });
+
+      await this.usersService.update(user.uuid, { resetToken });
+
+      // Send email
+      try {
+        const context = {
+          accountName: user.name,
+          URL: `${env.APP_URL}/reset-password?token=${resetToken}`,
+        };
+
+        const options = {
+          from: `${env.MAILGUN_NAME} <${env.MAILGUN_SENDER_EMAIL}>`,
+          to: email,
+          subject: "Reset Password Requested",
+          html: createTemplate("forgot-password", context),
+        };
+
+        await sendMail(options);
+      } catch (error) {
+        console.log(`Error: ${error}`);
+        throw new Error(`Error while sending email: ${error}`);
+      }
+
+      logger.info(`${this.logFileName} Email reset link successfully sent`, { email, resetToken });
+      return { message: "Reset link sent. Check your inbox" };
     } catch (error) {
       if (createHttpError.isHttpError(error)) {
         throw error;
@@ -207,38 +243,47 @@ export class AuthService {
           error: error.message,
           email,
         });
-        throw new Error(`${this.logFileName} Error while login: ${error.message}`);
+        throw new Error(`${this.logFileName} Error while forgot password: ${error.message}`);
       }
       logger.error(`${this.logFileName} Unknown error during registration`, {
         email,
       });
-      throw new Error(`${this.logFileName} Unknown error occurred while login`);
+      throw new Error(`${this.logFileName} Unknown error occurred while forgot password`);
     }
   };
 
-  resetPassword = async (
-    authorization: string | undefined,
-    email: string,
-    currentPassword: string,
-    newPassword: string,
-  ) => {
-    console.log("🚀 ~ AuthService ~ newPassword:", newPassword);
-    console.log("🚀 ~ AuthService ~ currentPassword:", currentPassword);
-    console.log("🚀 ~ AuthService ~ authorization:", authorization);
-    logger.info(`${this.logFileName} reset password service invoked`, { email });
+  resetPassword = async (resetPasswordDto: ResetPasswordDto) => {
+    logger.info(`${this.logFileName} reset password service invoked`, {
+      resetToken: resetPasswordDto.resetToken,
+    });
 
     try {
-      const user = await this.usersService.getByEmail(email);
+      const user = await this.usersRepository.getByField("resetToken", resetPasswordDto.resetToken);
+
       if (!user) {
         logger.error(`${this.logFileName} ${this.collectionName} does not exists!`, {
-          email,
+          resetToken: resetPasswordDto.resetToken,
         });
         throw createHttpError(StatusCodes.BAD_REQUEST, `${this.collectionName} does not exist!`, {
           resource: "Auth",
         });
       }
 
-      logger.info(`${this.logFileName} Password reset successful`, { email });
+      if (!user.resetToken || resetPasswordDto.resetToken !== user.resetToken) {
+        throw createHttpError(StatusCodes.BAD_REQUEST, "Invalid or expired reset token.");
+      }
+
+      const hashedPassword = await hash(resetPasswordDto.password, env.HASH!);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await this.usersRepository.update(user.uuid, {
+        password: hashedPassword,
+        resetToken: undefined,
+      } as any);
+
+      logger.info(`${this.logFileName} Password reset successful`, {
+        resetToken: resetPasswordDto.resetToken,
+      });
       return { message: "Password reset successful" };
     } catch (error) {
       if (createHttpError.isHttpError(error)) {
@@ -248,14 +293,14 @@ export class AuthService {
       if (error instanceof Error) {
         logger.error(`${this.logFileName} Error during registration`, {
           error: error.message,
-          email,
+          resetToken: resetPasswordDto.resetToken,
         });
-        throw new Error(`${this.logFileName} Error while login: ${error.message}`);
+        throw new Error(`${this.logFileName} Error while reset password: ${error.message}`);
       }
       logger.error(`${this.logFileName} Unknown error during registration`, {
-        email,
+        resetToken: resetPasswordDto.resetToken,
       });
-      throw new Error(`${this.logFileName} Unknown error occurred while login`);
+      throw new Error(`${this.logFileName} Unknown error occurred while reset password`);
     }
   };
 }

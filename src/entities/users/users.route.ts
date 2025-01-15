@@ -136,7 +136,7 @@ usersRouter.post("/", zodValidation(RegisterSchema), usersController.create);
 
 usersRegistry.registerPath({
   method: "put",
-  path: `${ROUTE}/{id}`,
+  path: `${ROUTE}/{uuid}`,
   tags: [TAG],
   summary: `Update ${TAG}`,
   request: {
@@ -165,7 +165,7 @@ usersRegistry.registerPath({
 });
 usersRouter.delete(
   "/bulk",
-  zodValidation(z.object({ ids: z.array(z.string()) })),
+  zodValidation(z.object({ uuids: z.array(z.string()) })),
   usersController.deleteAll,
 );
 

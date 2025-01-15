@@ -5,10 +5,10 @@ import { createApiResponse } from "@/common/swagger/swagger-response-builder";
 import {
   AuthSchema,
   ExtendTokenSchema,
-  forgotModel,
+  ForgotPasswordSchema,
   LogoutSchema,
   RegisterSchema,
-  resetModel,
+  ResetPasswordSchema,
 } from "@/entities/auth/auth.dto";
 import { AuthController } from "@/entities/auth/auth.controller";
 
@@ -93,12 +93,16 @@ authRegistry.registerPath({
   summary: "Forgot Password",
   request: {
     body: {
-      content: { "application/json": { schema: forgotModel } },
+      content: { "application/json": { schema: ForgotPasswordSchema } },
     },
   },
-  responses: createApiResponse(forgotModel, "Reset link sent. Check you email"),
+  responses: createApiResponse(ForgotPasswordSchema, "Reset link sent. Check you email"),
 });
-authRouter.post("/forgot-password", zodValidation(forgotModel), authController.forgotPassword);
+authRouter.post(
+  "/forgot-password",
+  zodValidation(ForgotPasswordSchema),
+  authController.forgotPassword,
+);
 
 //====================================================================================================
 
@@ -109,11 +113,15 @@ authRegistry.registerPath({
   summary: "Reset Password",
   request: {
     body: {
-      content: { "application/json": { schema: resetModel } },
+      content: { "application/json": { schema: ResetPasswordSchema } },
     },
   },
-  responses: createApiResponse(resetModel, "Password reset successful"),
+  responses: createApiResponse(ResetPasswordSchema, "Password reset successful"),
 });
-authRouter.post("/reset-password", zodValidation(ExtendTokenSchema), authController.resetPassword);
+authRouter.post(
+  "/reset-password",
+  zodValidation(ResetPasswordSchema),
+  authController.resetPassword,
+);
 
 export default authRouter;

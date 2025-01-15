@@ -40,4 +40,17 @@ healthRegistry.registerPath({
 
 healthRouter.get("/clear-cache", healthController.clearCache);
 
+//====================================================================================================
+
+healthRegistry.registerPath({
+  method: "get",
+  path: `${ROUTE}/clear-logs`,
+  summary: "Clear log files",
+  tags: [TAG],
+  security: [],
+  responses: createApiResponse(z.any(), "Success"),
+});
+
+healthRouter.get("/clear-logs", healthController.clearLogFiles);
+
 export default healthRouter;

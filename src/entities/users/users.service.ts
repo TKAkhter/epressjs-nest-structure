@@ -251,11 +251,35 @@ export class UsersService {
         });
       }
 
+      if (updateDto.email) {
+        const email = await this.usersRepository.getByEmail(updateDto.email);
+        if (email) {
+          logger.error(
+            `${this.logFileName} ${this.collectionName} with email ${updateDto.email} already exists`,
+          );
+          throw createHttpError(StatusCodes.BAD_REQUEST, "Email already exists!", {
+            resource: this.collectionName,
+          });
+        }
+      }
+
+      if (updateDto.username) {
+        const username = await this.usersRepository.getByUsername(updateDto.username);
+        if (username) {
+          logger.error(
+            `${this.logFileName} ${this.collectionName} with username ${updateDto.email} already exists`,
+          );
+          throw createHttpError(StatusCodes.BAD_REQUEST, "Username already exists!", {
+            resource: this.collectionName,
+          });
+        }
+      }
+
       // If (updateDto.password) {
       //   UpdateDto.password = await hash(updateDto.password, env.HASH!);
       // }
 
-      // UpdateDto.updatedAt = new Date();
+      updateDto.updatedAt = new Date();
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return await this.usersRepository.update(uuid, updateDto as any);
@@ -356,10 +380,7 @@ export class UsersService {
         `${this.logFileName} ${imported.createdCount} completed, ${imported.skippedCount} skipped for ${this.collectionName}`,
       );
 
-      return {
-        message: `${imported.createdCount} completed, ${imported.skippedCount} skipped`,
-        ...imported,
-      };
+      return imported;
     } catch (error) {
       if (createHttpError.isHttpError(error)) {
         throw error;

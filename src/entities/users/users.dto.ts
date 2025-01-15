@@ -15,6 +15,7 @@ export const UsersSchema = z.object({
   phoneNumber: z.string().optional(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
+  resetToken: z.string().optional(),
 });
 
 export const CreateUsersSchema = UsersSchema.omit({
@@ -29,6 +30,8 @@ export const UpdateUsersSchema = z.object({
   email: z.string().email("Invalid email address").optional(),
   bio: z.string().optional(),
   phoneNumber: z.string().optional(),
+  updatedAt: z.date().optional(),
+  resetToken: z.string().optional(),
 });
 
 export type UsersDto = z.infer<typeof UsersSchema>;
