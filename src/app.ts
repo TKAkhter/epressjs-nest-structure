@@ -1,4 +1,4 @@
-import { errorHandler, cors } from "@/middlewares";
+import { errorMiddleware, cors } from "@/middlewares";
 import express, { NextFunction, Request, Response } from "express";
 import { apiRoutes } from "@/routes/routes";
 import { env } from "@/config/env";
@@ -48,7 +48,12 @@ logger.info("Additional security headers set");
 // Rate limiting middleware
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Limit each IP to 1000 requests per windowMs
+  max: 500, // Limit each IP to 500 requests per windowMs
+  message: {
+    success: false,
+    message: "Too many requests, please try again later.",
+  },
+  headers: true,
 });
 
 // Slow down requests from a single IP to prevent abuse
@@ -84,7 +89,7 @@ app.use(responseTime());
 logger.info("Response time middleware applied");
 
 // Timeout Middleware
-app.use(timeout((env.SERVER_TIMEOUT as string) || "150s")); // Set a 150-second timeout for all routes
+app.use(timeout(env.SERVER_TIMEOUT)); // Set a 150-second timeout for all routes
 logger.info("Timeout middleware applied"); // Log timeout middleware
 
 // Permissions Policy
@@ -96,6 +101,11 @@ app.use((_, res, next) => {
 
 // Routes
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+logger.info("Uploads routes set up");
+
+app.use("/logs", express.static(path.join(__dirname, "../logs")));
+logger.info("Logs routes set up");
+
 app.use("/api", apiRoutes);
 logger.info("API routes set up");
 
@@ -105,12 +115,12 @@ logger.info("Swagger UI routes set up");
 
 // Custom Error Handler Middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  errorHandler(err, req, res, next);
+  errorMiddleware(err, req, res, next);
 });
 
 // Catch 404 and forward to error handler
 app.use((_: Request, res: Response) => {
-  logger.error("Route not found");
+  logger.warn("Route not found");
   res.status(404).send("Route not found");
 });
 

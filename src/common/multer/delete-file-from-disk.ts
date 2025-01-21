@@ -13,7 +13,8 @@ export const deleteFileFromDisk = (fileName: string) => {
 
     fs.unlink(filePath, (err) => {
       if (err) {
-        console.error("Error deleting file:", err);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        logger.warn("Error deleting file:", err as any);
         throw new Error("Failed to delete the file.");
       }
 
@@ -21,7 +22,7 @@ export const deleteFileFromDisk = (fileName: string) => {
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
-    console.error("Error deleting file:", error);
+    logger.warn("Error deleting file:", error);
     throw new Error("Failed to delete the file.");
   }
 };

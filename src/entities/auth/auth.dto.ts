@@ -51,16 +51,20 @@ export const ExtendTokenSchema = z.object({
   token: z.string(),
 });
 
-export const forgotModel = z.object({
+export const ForgotPasswordSchema = z.object({
   email: z.string().email().trim(),
 });
 
-export const resetModel = z.object({
-  password: PASSWORD_SCHEMA,
-  confirm: z.string().min(8).optional(),
-  currentPassword: z.string().min(8).optional(),
-  email: z.string().email().trim(),
-});
+export const ResetPasswordSchema = z
+  .object({
+    resetToken: z.string(),
+    password: PASSWORD_SCHEMA,
+    confirmPassword: z.string().min(8),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 export const RegisterSchema = z
   .object({
@@ -77,3 +81,4 @@ export const RegisterSchema = z
 
 export type RegisterDto = z.infer<typeof RegisterSchema>;
 export type AuthDto = z.infer<typeof AuthSchema>;
+export type ResetPasswordDto = z.infer<typeof ResetPasswordSchema>;

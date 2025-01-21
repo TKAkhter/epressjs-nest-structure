@@ -19,7 +19,7 @@ export const updateImageToDisk = async (fileName: string, file: any) => {
     fs.writeFile(tempFilePath, file.buffer, (err) => {
       if (err) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        logger.error("Error saving file to disk:", err as any);
+        logger.warn("Error saving file to disk:", err as any);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         throw new Error(err as any);
       }
@@ -27,7 +27,7 @@ export const updateImageToDisk = async (fileName: string, file: any) => {
       response = fs.rename(tempFilePath, newFilePath, (renameErr) => {
         if (renameErr) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          logger.error("Error replacing file:", renameErr as any);
+          logger.warn("Error replacing file:", renameErr as any);
 
           return false;
         }
@@ -41,7 +41,7 @@ export const updateImageToDisk = async (fileName: string, file: any) => {
     return response;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
-    logger.error("Error updating image:", error);
+    logger.warn("Error updating image:", error);
     throw new Error(error);
   }
 };

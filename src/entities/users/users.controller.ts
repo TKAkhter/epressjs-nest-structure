@@ -4,8 +4,8 @@ import createHttpError from "http-errors";
 import { StatusCodes } from "http-status-codes";
 import { logger } from "@/common/winston/winston";
 import { CustomRequest } from "@/types/request";
-import { csvToJson } from "@/utils/utils";
-import { generateCache } from "@/common/cache/generate-cache";
+import { csvBufferToJson, csvToJson } from "@/utils/csv-to-json";
+import { createResponse } from "@/utils/create-response";
 
 export class UsersController {
   public collectionName: string;
@@ -26,17 +26,15 @@ export class UsersController {
    * @returns JSON list of entities
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getAll = async (_req: CustomRequest, res: Response, next: NextFunction): Promise<any> => {
+  getAll = async (req: CustomRequest, res: Response, next: NextFunction): Promise<any> => {
     try {
       logger.info(`${this.logFileName} Fetching all ${this.collectionName}`);
       const data = await this.usersService.getAll();
-      // Generate cache if enabled
-      await generateCache(res.locals.cacheKey, data);
 
-      return res.json(data);
+      return res.json(createResponse(req, data));
     } catch (error) {
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} Error fetching all ${this.collectionName}`, {
+        logger.warn(`${this.logFileName} Error fetching all ${this.collectionName}`, {
           error: error.message,
         });
       }
@@ -54,18 +52,16 @@ export class UsersController {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getById = async (req: CustomRequest, res: Response, next: NextFunction): Promise<any> => {
     const { id } = req.params;
-    const { user } = req;
+    const { loggedUser } = req;
     try {
-      logger.info(`${this.logFileName} Fetching ${this.collectionName} by ID`, { user, id });
+      logger.info(`${this.logFileName} Fetching ${this.collectionName} by ID`, { loggedUser, id });
       const data = await this.usersService.getById(id);
-      // Generate cache if enabled
-      await generateCache(res.locals.cacheKey, data);
-      return res.json(data);
+      return res.json(createResponse(req, data));
     } catch (error) {
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} Error fetching ${this.collectionName} by ID`, {
+        logger.warn(`${this.logFileName} Error fetching ${this.collectionName} by ID`, {
           error: error.message,
-          user,
+          loggedUser,
           id,
         });
       }
@@ -83,18 +79,19 @@ export class UsersController {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getByUuid = async (req: CustomRequest, res: Response, next: NextFunction): Promise<any> => {
     const { uuid } = req.params;
-    const { user } = req;
+    const { loggedUser } = req;
     try {
-      logger.info(`${this.logFileName} Fetching ${this.collectionName} by uuid`, { user, uuid });
+      logger.info(`${this.logFileName} Fetching ${this.collectionName} by uuid`, {
+        loggedUser,
+        uuid,
+      });
       const data = await this.usersService.getByUuid(uuid);
-      // Generate cache if enabled
-      await generateCache(res.locals.cacheKey, data);
-      return res.json(data);
+      return res.json(createResponse(req, data));
     } catch (error) {
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} Error fetching ${this.collectionName} by uuid`, {
+        logger.warn(`${this.logFileName} Error fetching ${this.collectionName} by uuid`, {
           error: error.message,
-          user,
+          loggedUser,
           uuid,
         });
       }
@@ -112,18 +109,19 @@ export class UsersController {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getByEmail = async (req: CustomRequest, res: Response, next: NextFunction): Promise<any> => {
     const { email } = req.params;
-    const { user } = req;
+    const { loggedUser } = req;
     try {
-      logger.info(`${this.logFileName} Fetching ${this.collectionName} by email`, { user, email });
+      logger.info(`${this.logFileName} Fetching ${this.collectionName} by email`, {
+        loggedUser,
+        email,
+      });
       const data = await this.usersService.getByEmail(email);
-      // Generate cache if enabled
-      await generateCache(res.locals.cacheKey, data);
-      return res.json(data);
+      return res.json(createResponse(req, data));
     } catch (error) {
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} Error fetching ${this.collectionName} by email`, {
+        logger.warn(`${this.logFileName} Error fetching ${this.collectionName} by email`, {
           error: error.message,
-          user,
+          loggedUser,
           email,
         });
       }
@@ -138,17 +136,18 @@ export class UsersController {
    * @param next - Next middleware function
    * @returns JSON result of the query
    */
-  findByQuery = async (req: CustomRequest, res: Response, next: NextFunction): Promise<void> => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  findByQuery = async (req: CustomRequest, res: Response, next: NextFunction): Promise<any> => {
     try {
       const { paginate, orderBy, filter } = req.body;
       const queryOptions = { paginate, orderBy, filter };
       logger.info(`${this.logFileName} Finding ${this.collectionName} by query`, { queryOptions });
 
       const result = await this.usersService.findByQuery(queryOptions);
-      res.json(result);
+      return res.json(createResponse(req, result));
     } catch (error) {
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} Error finding ${this.collectionName} by query`, {
+        logger.warn(`${this.logFileName} Error finding ${this.collectionName} by query`, {
           error: error.message,
         });
       }
@@ -166,16 +165,21 @@ export class UsersController {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   create = async (req: CustomRequest, res: Response, next: NextFunction): Promise<any> => {
     const createDto = req.body;
-    const { user } = req;
+    const { loggedUser } = req;
     try {
-      logger.info(`${this.logFileName} Creating new ${this.collectionName}`, { user, createDto });
+      logger.info(`${this.logFileName} Creating new ${this.collectionName}`, {
+        loggedUser,
+        createDto,
+      });
       const created = await this.usersService.create(createDto);
-      return res.json(created);
+      return res.json(
+        createResponse(req, created, "User created successfully", StatusCodes.CREATED),
+      );
     } catch (error) {
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} Error creating ${this.collectionName}`, {
+        logger.warn(`${this.logFileName} Error creating ${this.collectionName}`, {
           error: error.message,
-          user,
+          loggedUser,
           createDto,
         });
       }
@@ -194,16 +198,20 @@ export class UsersController {
   update = async (req: CustomRequest, res: Response, next: NextFunction): Promise<any> => {
     const { uuid } = req.params;
     const updateDto = req.body;
-    const { user } = req;
+    const { loggedUser } = req;
     try {
-      logger.info(`${this.logFileName} Updating ${this.collectionName}`, { user, uuid, updateDto });
+      logger.info(`${this.logFileName} Updating ${this.collectionName}`, {
+        loggedUser,
+        uuid,
+        updateDto,
+      });
       const updatedData = await this.usersService.update(uuid, updateDto);
-      return res.json(updatedData);
+      return res.json(createResponse(req, updatedData, "User updated successfully"));
     } catch (error) {
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} Error updating ${this.collectionName}`, {
+        logger.warn(`${this.logFileName} Error updating ${this.collectionName}`, {
           error: error.message,
-          user,
+          loggedUser,
           uuid,
           updateDto,
         });
@@ -222,16 +230,19 @@ export class UsersController {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   delete = async (req: CustomRequest, res: Response, next: NextFunction): Promise<any> => {
     const { uuid } = req.params;
-    const { user } = req;
+    const { loggedUser } = req;
     try {
-      logger.info(`${this.logFileName} Deleting ${this.collectionName} by uuid`, { user, uuid });
+      logger.info(`${this.logFileName} Deleting ${this.collectionName} by uuid`, {
+        loggedUser,
+        uuid,
+      });
       await this.usersService.delete(uuid);
-      return res.json({ message: `${this.collectionName} Deleted Successfully` });
+      return res.json(createResponse(req, {}, "User deleted Successfully"));
     } catch (error) {
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} Error deleting ${this.collectionName}`, {
+        logger.warn(`${this.logFileName} Error deleting ${this.collectionName}`, {
           error: error.message,
-          user,
+          loggedUser,
           uuid,
         });
       }
@@ -249,7 +260,7 @@ export class UsersController {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   deleteAll = async (req: CustomRequest, res: Response, next: NextFunction): Promise<any> => {
     const { uuids } = req.body;
-    const { user } = req;
+    const { loggedUser } = req;
     try {
       if (!Array.isArray(uuids) || uuids.length === 0) {
         throw createHttpError(StatusCodes.BAD_REQUEST, "Invalid or empty array of uuids", {
@@ -257,17 +268,24 @@ export class UsersController {
         });
       }
 
-      logger.info(`${this.logFileName} Deleting multiple ${this.collectionName}`, { user, uuids });
+      logger.info(`${this.logFileName} Deleting multiple ${this.collectionName}`, {
+        loggedUser,
+        uuids,
+      });
       const result = await this.usersService.deleteAll(uuids);
 
-      return res.json({
-        message: `${result.deletedCount} ${this.collectionName} deleted successfully`,
-      });
+      return res.json(
+        createResponse(
+          req,
+          {},
+          `${result.deletedCount} ${this.collectionName} deleted successfully`,
+        ),
+      );
     } catch (error) {
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} Error deleting ${this.collectionName}`, {
+        logger.warn(`${this.logFileName} Error deleting ${this.collectionName}`, {
           error: error.message,
-          user,
+          loggedUser,
           uuids,
         });
       }
@@ -284,22 +302,34 @@ export class UsersController {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   import = async (req: CustomRequest, res: Response, next: NextFunction): Promise<any> => {
-    const { user, file } = req;
+    const { loggedUser, file } = req;
     if (!file) {
       return next(createHttpError(StatusCodes.BAD_REQUEST, "No file uploaded."));
     }
     try {
-      logger.info(`${this.logFileName} Importing new ${this.collectionName}`, { user });
+      logger.info(`${this.logFileName} Importing new ${this.collectionName}`, { loggedUser });
+      let importEntries;
 
-      const importEntries = await csvToJson(file.path);
+      if (file.buffer) {
+        importEntries = await csvBufferToJson(file.buffer);
+      } else {
+        importEntries = await csvToJson(file.path);
+      }
 
       const imported = await this.usersService.import(importEntries);
-      return res.json(imported);
+
+      return res.json(
+        createResponse(
+          req,
+          imported.createdEntities,
+          `${imported.createdCount} completed, ${imported.skippedCount} skipped`,
+        ),
+      );
     } catch (error) {
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} Error creating ${this.collectionName}`, {
+        logger.warn(`${this.logFileName} Error creating ${this.collectionName}`, {
           error: error.message,
-          user,
+          loggedUser,
         });
       }
       next(error);
@@ -323,7 +353,7 @@ export class UsersController {
       res.send(csv);
     } catch (error) {
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} Error exporting ${this.collectionName}`, {
+        logger.warn(`${this.logFileName} Error exporting ${this.collectionName}`, {
           error: error.message,
         });
       }

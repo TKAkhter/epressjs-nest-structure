@@ -9,6 +9,9 @@ import {
 } from "@/entities/health/health.helper";
 import { StatusCodes } from "http-status-codes";
 import redis from "@/config/redis/redis";
+import fs from "fs";
+import { env } from "@/config/env";
+import path from "path";
 
 export class HealthController {
   private logFileName: string;
@@ -46,18 +49,18 @@ export class HealthController {
         .json(createHealthCheckResponse(overallStatus, healthCheck));
     } catch (error) {
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} health API error`, {
+        logger.warn(`${this.logFileName} health API error`, {
           error: error.message,
         });
       } else {
-        logger.error(`${this.logFileName} health API error: Unknown error occurred`);
+        logger.warn(`${this.logFileName} health API error: Unknown error occurred`);
       }
       next(error);
     }
   };
 
   /**
-   * Handles health of server.
+   * * Clear Redis API cache.
    * @param _req - CustomRequest object
    * @param res - Response object
    * @param next - Next middleware function
@@ -84,11 +87,43 @@ export class HealthController {
       res.json({ message: "Cache cleared successfully" });
     } catch (error) {
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} clearCache API error`, {
+        logger.warn(`${this.logFileName} clearCache API error`, {
           error: error.message,
         });
       } else {
-        logger.error(`${this.logFileName} clearCache API error: Unknown error occurred`);
+        logger.warn(`${this.logFileName} clearCache API error: Unknown error occurred`);
+      }
+      next(error);
+    }
+  };
+
+  /**
+   * Handles health of server.
+   * @param _req - CustomRequest object
+   * @param res - Response object
+   * @param next - Next middleware function
+   */
+  clearLogFiles = async (_: CustomRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!fs.existsSync(env.LOGS_DIRECTORY)) {
+        fs.mkdirSync(env.LOGS_DIRECTORY);
+      }
+
+      const files = fs.readdirSync(env.LOGS_DIRECTORY);
+
+      files.forEach((file) => {
+        const filePath = path.join(env.LOGS_DIRECTORY, file);
+        fs.unlinkSync(filePath);
+      });
+
+      res.json({ message: "All log files have been cleared." });
+    } catch (error) {
+      if (error instanceof Error) {
+        logger.warn(`${this.logFileName} clearLogFiles API error`, {
+          error: error.message,
+        });
+      } else {
+        logger.warn(`${this.logFileName} clearLogFiles API error: Unknown error occurred`);
       }
       next(error);
     }

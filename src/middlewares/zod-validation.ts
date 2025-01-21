@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import { ZodTypeAny } from "zod";
 import { logger } from "@/common/winston/winston";
+import { createResponse } from "@/utils/create-response";
 
 export const zodValidation =
   (zSchema: ZodTypeAny) =>
@@ -15,7 +16,9 @@ export const zodValidation =
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      logger.error("ZodValidation", error);
-      return res.status(StatusCodes.BAD_REQUEST).json(error);
+      logger.warn("Zod Validation Error", error);
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .json(createResponse(req, error, "Zod Validation Error", StatusCodes.BAD_REQUEST));
     }
   };

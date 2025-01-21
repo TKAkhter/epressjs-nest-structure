@@ -20,7 +20,7 @@ export class FilesService {
       };
       return await this.filesRepository.createFile(fileUpload);
     } catch (error) {
-      logger.error("Error uploading file metadata", { error });
+      logger.warn("Error uploading file metadata", { error });
       throw createHttpError(StatusCodes.INTERNAL_SERVER_ERROR, "Error uploading file metadata.");
     }
   }

@@ -31,12 +31,12 @@ export class UsersService {
       return data;
     } catch (error) {
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} Error fetching all ${this.collectionName}`, {
+        logger.warn(`${this.logFileName} Error fetching all ${this.collectionName}`, {
           error: error.message,
         });
         throw new Error(`Error fetching ${this.collectionName}: ${error.message}`);
       }
-      logger.error(
+      logger.warn(
         `${this.logFileName} Unknown error occurred while fetching all ${this.collectionName}`,
       );
       throw new Error(`Unknown error occurred while fetching ${this.collectionName}`);
@@ -54,7 +54,7 @@ export class UsersService {
       const data = await this.usersRepository.getById(id);
 
       if (!data) {
-        logger.error(`${this.logFileName} ${this.collectionName} with id ${id} not found`);
+        logger.warn(`${this.logFileName} ${this.collectionName} with id ${id} not found`);
         throw createHttpError(StatusCodes.BAD_REQUEST, `${this.collectionName} not found`, {
           resource: this.collectionName,
         });
@@ -66,13 +66,13 @@ export class UsersService {
         throw error;
       }
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} Error fetching ${this.collectionName} by id`, {
+        logger.warn(`${this.logFileName} Error fetching ${this.collectionName} by id`, {
           id,
           error: error.message,
         });
         throw new Error(`Error fetching ${this.collectionName} by id: ${error.message}`);
       }
-      logger.error(
+      logger.warn(
         `${this.logFileName} Unknown error occurred while fetching ${this.collectionName} by id`,
       );
       throw new Error(`Unknown error occurred while fetching ${this.collectionName} by id`);
@@ -90,7 +90,7 @@ export class UsersService {
       const data = await this.usersRepository.getByUuid(uuid);
 
       if (!data) {
-        logger.error(`${this.logFileName} ${this.collectionName} with uuid ${uuid} not found`);
+        logger.warn(`${this.logFileName} ${this.collectionName} with uuid ${uuid} not found`);
         throw createHttpError(StatusCodes.BAD_REQUEST, `${this.collectionName} not found`, {
           resource: this.collectionName,
         });
@@ -102,13 +102,13 @@ export class UsersService {
         throw error;
       }
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} Error fetching ${this.collectionName} by uuid`, {
+        logger.warn(`${this.logFileName} Error fetching ${this.collectionName} by uuid`, {
           uuid,
           error: error.message,
         });
         throw new Error(`Error fetching ${this.collectionName} by uuid: ${error.message}`);
       }
-      logger.error(
+      logger.warn(
         `${this.logFileName} Unknown error occurred while fetching ${this.collectionName} by uuid`,
       );
       throw new Error(`Unknown error occurred while fetching ${this.collectionName} by uuid`);
@@ -126,7 +126,7 @@ export class UsersService {
       const data = await this.usersRepository.getByEmail(email);
 
       if (!data) {
-        logger.error(`${this.logFileName} ${this.collectionName} with email ${email} not found`);
+        logger.warn(`${this.logFileName} ${this.collectionName} with email ${email} not found`);
         return false;
       }
 
@@ -136,13 +136,13 @@ export class UsersService {
         throw error;
       }
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} Error fetching ${this.collectionName} by email`, {
+        logger.warn(`${this.logFileName} Error fetching ${this.collectionName} by email`, {
           email,
           error: error.message,
         });
         throw new Error(`Error fetching ${this.collectionName} by email: ${error.message}`);
       }
-      logger.error(
+      logger.warn(
         `${this.logFileName} Unknown error occurred while fetching ${this.collectionName} by email`,
       );
       throw new Error(`Unknown error occurred while fetching ${this.collectionName} by email`);
@@ -162,7 +162,7 @@ export class UsersService {
       );
       return await this.usersRepository.findByQuery(options);
     } catch (error) {
-      logger.error(`${this.logFileName} Error querying ${this.collectionName}`, {
+      logger.warn(`${this.logFileName} Error querying ${this.collectionName}`, {
         options,
         error: error instanceof Error ? error.message : "Unknown error",
       });
@@ -184,7 +184,7 @@ export class UsersService {
       const username = await this.usersRepository.getByUsername(createDto.username);
 
       if (data) {
-        logger.error(
+        logger.warn(
           `${this.logFileName} ${this.collectionName} with email ${createDto.email} already exists`,
         );
         throw createHttpError(StatusCodes.BAD_REQUEST, `${this.collectionName} already exists!`, {
@@ -193,7 +193,7 @@ export class UsersService {
       }
 
       if (username) {
-        logger.error(
+        logger.warn(
           `${this.logFileName} ${this.collectionName} with username ${createDto.username} already exists.`,
         );
         throw createHttpError(StatusCodes.BAD_REQUEST, "username is taken!", {
@@ -218,13 +218,13 @@ export class UsersService {
       }
 
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} Error creating ${this.collectionName}`, {
+        logger.warn(`${this.logFileName} Error creating ${this.collectionName}`, {
           createDto,
           error: error.message,
         });
         throw new Error(`Error creating ${this.collectionName}: ${error.message}`);
       }
-      logger.error(
+      logger.warn(
         `${this.logFileName} Unknown error occurred while creating ${this.collectionName}`,
       );
       throw new Error(`Unknown error occurred while creating ${this.collectionName}`);
@@ -243,19 +243,41 @@ export class UsersService {
       const data = await this.getByUuid(uuid);
 
       if (!data) {
-        logger.error(
-          `${this.logFileName} ${this.collectionName} with uuid ${uuid} does not exist!`,
-        );
+        logger.warn(`${this.logFileName} ${this.collectionName} with uuid ${uuid} does not exist!`);
         throw createHttpError(StatusCodes.BAD_REQUEST, `${this.collectionName} does not exist!`, {
           resource: this.collectionName,
         });
+      }
+
+      if (updateDto.email) {
+        const email = await this.usersRepository.getByEmail(updateDto.email);
+        if (email) {
+          logger.warn(
+            `${this.logFileName} ${this.collectionName} with email ${updateDto.email} already exists`,
+          );
+          throw createHttpError(StatusCodes.BAD_REQUEST, "Email already exists!", {
+            resource: this.collectionName,
+          });
+        }
+      }
+
+      if (updateDto.username) {
+        const username = await this.usersRepository.getByUsername(updateDto.username);
+        if (username) {
+          logger.warn(
+            `${this.logFileName} ${this.collectionName} with username ${updateDto.email} already exists`,
+          );
+          throw createHttpError(StatusCodes.BAD_REQUEST, "Username already exists!", {
+            resource: this.collectionName,
+          });
+        }
       }
 
       // If (updateDto.password) {
       //   UpdateDto.password = await hash(updateDto.password, env.HASH!);
       // }
 
-      // UpdateDto.updatedAt = new Date();
+      updateDto.updatedAt = new Date();
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return await this.usersRepository.update(uuid, updateDto as any);
@@ -265,14 +287,14 @@ export class UsersService {
       }
 
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} Error updating ${this.collectionName}`, {
+        logger.warn(`${this.logFileName} Error updating ${this.collectionName}`, {
           uuid,
           updateDto,
           error: error.message,
         });
         throw new Error(`Error updating ${this.collectionName}: ${error.message}`);
       }
-      logger.error(
+      logger.warn(
         `${this.logFileName} Unknown error occurred while updating ${this.collectionName}`,
       );
       throw new Error(`Unknown error occurred while updating ${this.collectionName}`);
@@ -290,9 +312,7 @@ export class UsersService {
       const data = await this.getByUuid(uuid);
 
       if (!data) {
-        logger.error(
-          `${this.logFileName} ${this.collectionName} with uuid ${uuid} does not exist!`,
-        );
+        logger.warn(`${this.logFileName} ${this.collectionName} with uuid ${uuid} does not exist!`);
         throw createHttpError(StatusCodes.BAD_REQUEST, `${this.collectionName} does not exist!`, {
           resource: this.collectionName,
         });
@@ -305,13 +325,13 @@ export class UsersService {
       }
 
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} Error deleting ${this.collectionName}`, {
+        logger.warn(`${this.logFileName} Error deleting ${this.collectionName}`, {
           uuid,
           error: error.message,
         });
         throw new Error(`Error deleting ${this.collectionName}: ${error.message}`);
       }
-      logger.error(
+      logger.warn(
         `${this.logFileName} Unknown error occurred while deleting ${this.collectionName}`,
       );
       throw new Error(`Unknown error occurred while deleting ${this.collectionName}`);
@@ -325,14 +345,14 @@ export class UsersService {
    */
   deleteAll = async (uuids: string[]): Promise<{ deletedCount: number }> => {
     if (!Array.isArray(uuids) || uuids.length === 0) {
-      logger.error(`${this.logFileName} Invalid array of uuids for bulk delete`);
+      logger.warn(`${this.logFileName} Invalid array of uuids for bulk delete`);
       throw new Error("Invalid array of uuids");
     }
 
     const result = await this.usersRepository.deleteAll(uuids);
 
     if (result.deletedCount === 0) {
-      logger.error(`${this.logFileName} No ${this.collectionName} found to delete`, { uuids });
+      logger.warn(`${this.logFileName} No ${this.collectionName} found to delete`, { uuids });
       throw new Error(`No ${this.collectionName} found to delete`);
     }
 
@@ -356,23 +376,20 @@ export class UsersService {
         `${this.logFileName} ${imported.createdCount} completed, ${imported.skippedCount} skipped for ${this.collectionName}`,
       );
 
-      return {
-        message: `${imported.createdCount} completed, ${imported.skippedCount} skipped`,
-        ...imported,
-      };
+      return imported;
     } catch (error) {
       if (createHttpError.isHttpError(error)) {
         throw error;
       }
 
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} Error creating ${this.collectionName}`, {
+        logger.warn(`${this.logFileName} Error creating ${this.collectionName}`, {
           importDto,
           error: error.message,
         });
         throw new Error(`Error creating ${this.collectionName}: ${error.message}`);
       }
-      logger.error(
+      logger.warn(
         `${this.logFileName} Unknown error occurred while creating ${this.collectionName}`,
       );
       throw new Error(`Unknown error occurred while creating ${this.collectionName}`);
@@ -397,12 +414,12 @@ export class UsersService {
       return csv;
     } catch (error) {
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} Error fetching all ${this.collectionName}`, {
+        logger.warn(`${this.logFileName} Error fetching all ${this.collectionName}`, {
           error: error.message,
         });
         throw new Error(`Error fetching ${this.collectionName}: ${error.message}`);
       }
-      logger.error(
+      logger.warn(
         `${this.logFileName} Unknown error occurred while fetching all ${this.collectionName}`,
       );
       throw new Error(`Unknown error occurred while fetching ${this.collectionName}`);

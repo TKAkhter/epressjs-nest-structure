@@ -1,7 +1,7 @@
 import app from "@/app";
 import { env } from "@/config/env";
 import { logger } from "@/common/winston/winston";
-import connectMongoDB from "@/config/mongodb/mongodb";
+import { connectMongoDB } from "@/config/mongodb/mongodb";
 import { checkMongoDB, checkRedis } from "@/entities/health/health.helper";
 
 const { PORT, NODE_ENV, BASE_URL, ALLOW_ORIGIN } = env;
@@ -20,9 +20,9 @@ async function checkConnections() {
     logger.info("MongoDB connections verified successfully.");
   } catch (error) {
     if (error instanceof Error) {
-      logger.error("MongoDB, or Redis connection failed", { error: error.message });
+      logger.warn("MongoDB, or Redis connection failed", { error: error.message });
     } else {
-      logger.error("Unknown error occurred during connection checks");
+      logger.warn("Unknown error occurred during connection checks");
     }
 
     // eslint-disable-next-line no-process-exit

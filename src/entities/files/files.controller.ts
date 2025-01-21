@@ -10,13 +10,13 @@ import { deleteFileFromDisk } from "@/common/multer/delete-file-from-disk";
 const filesService = new FilesService();
 export class FilesController {
   async getAllFiles(req: CustomRequest, res: Response, next: NextFunction): Promise<void> {
-    const { user } = req;
+    const { loggedUser } = req;
     try {
       const files = await filesService.getAllFiles();
       res.json(files);
     } catch (error) {
       if (error instanceof Error) {
-        logger.error("Error getting files", { error: error.message, user });
+        logger.warn("Error getting files", { error: error.message, loggedUser });
       }
       next(error);
     }
@@ -24,39 +24,39 @@ export class FilesController {
 
   async getFileById(req: CustomRequest, res: Response, next: NextFunction): Promise<void> {
     const { id } = req.params;
-    const { user } = req;
+    const { loggedUser } = req;
     try {
       const file = await filesService.getFileById(id);
       res.json(file);
     } catch (error) {
       if (error instanceof Error) {
-        logger.error("Error getting file", { error: error.message, user, id });
+        logger.warn("Error getting file", { error: error.message, loggedUser, id });
       }
       next(error);
     }
   }
 
   async createFile(req: CustomRequest, res: Response, next: NextFunction): Promise<void> {
-    const { user } = req;
+    const { loggedUser } = req;
     const { buffer, mimetype } = req.file!;
     const { tags } = req.body;
 
     try {
       const { fileName, filePath } = await saveFileToDisk(req.file);
       const fileText = `data:${mimetype};base64,${buffer.toString("base64")}`;
-      const fileData: UploadFilesDto = { fileName, filePath, fileText, userId: user!, tags };
+      const fileData: UploadFilesDto = { fileName, filePath, fileText, userId: loggedUser!, tags };
       const newFile = await filesService.uploadFiles(fileData);
       res.status(201).json(newFile);
     } catch (error) {
       if (error instanceof Error) {
-        logger.error("Error uploading file", { error: error.message, user });
+        logger.warn("Error uploading file", { error: error.message, loggedUser });
       }
       next(error);
     }
   }
 
   async updateFile(req: CustomRequest, res: Response, next: NextFunction): Promise<void> {
-    const { user } = req;
+    const { loggedUser } = req;
     const { id } = req.params;
     const { buffer, mimetype } = req.file!;
     const updateData = req.body;
@@ -71,21 +71,21 @@ export class FilesController {
         fileName,
         filePath,
         fileText,
-        userId: user!,
+        userId: loggedUser!,
         ...updateData,
       };
       const updatedFile = await filesService.updateFile(id, fileData);
       res.json(updatedFile);
     } catch (error) {
       if (error instanceof Error) {
-        logger.error("Error updating file", { error: error.message, user, id });
+        logger.warn("Error updating file", { error: error.message, loggedUser, id });
       }
       next(error);
     }
   }
 
   async deleteFile(req: CustomRequest, res: Response, next: NextFunction): Promise<void> {
-    const { user } = req;
+    const { loggedUser } = req;
     const { id } = req.params;
     try {
       const existFile = await filesService.getFileById(id);
@@ -97,7 +97,7 @@ export class FilesController {
       res.status(204).send();
     } catch (error) {
       if (error instanceof Error) {
-        logger.error("Error deleting file", { error: error.message, user, id });
+        logger.warn("Error deleting file", { error: error.message, loggedUser, id });
       }
       next(error);
     }

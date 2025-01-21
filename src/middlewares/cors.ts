@@ -21,7 +21,7 @@ export const config = {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      logger.error("Origin not allowed by CORS", { origin });
+      logger.warn("Origin not allowed by CORS", { origin });
 
       callback(new Error("Not allowed by CORS"));
     }

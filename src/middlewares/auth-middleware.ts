@@ -3,6 +3,7 @@ import { CustomRequest } from "@/types/request";
 import createHttpError from "http-errors";
 import { StatusCodes } from "http-status-codes";
 import { verifyToken } from "@/common/jwt/jwt";
+import { winstonLogger } from "@/common/winston/winston";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const authMiddleware = (req: CustomRequest, _: Response, next: NextFunction): any => {
@@ -14,6 +15,7 @@ export const authMiddleware = (req: CustomRequest, _: Response, next: NextFuncti
   }
 
   const verify = verifyToken(token);
-  req.user = verify.email || verify.username || verify.type;
+  req.loggedUser = verify.email || verify.username || verify.type;
+  winstonLogger.defaultMeta = { loggedUser: verify.email || verify.username || verify.type };
   next();
 };

@@ -1,5 +1,5 @@
 import { NextFunction, Response } from "express";
-import { AuthDto, RegisterDto } from "@/entities/auth/auth.dto";
+import { AuthDto, RegisterDto, ResetPasswordDto } from "@/entities/auth/auth.dto";
 import { AuthService } from "@/entities/auth/auth.services";
 import { logger } from "@/common/winston/winston";
 import { CustomRequest } from "@/types/request";
@@ -21,22 +21,25 @@ export class AuthController {
    */
   login = async (req: CustomRequest, res: Response, next: NextFunction): Promise<void> => {
     const loginDto: AuthDto = req.body;
-    const { user } = req;
-    logger.info(`${this.logFileName} login API invoked`, { email: loginDto.email, user });
+    const { loggedUser } = req;
+    logger.info(`${this.logFileName} login API invoked`, { email: loginDto.email, loggedUser });
 
     try {
       const result = await this.authService.login(loginDto);
-      logger.info(`${this.logFileName} User login successful`, { email: loginDto.email, user });
+      logger.info(`${this.logFileName} User login successful`, {
+        email: loginDto.email,
+        loggedUser,
+      });
       res.json(result);
     } catch (error) {
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} login API error`, {
+        logger.warn(`${this.logFileName} login API error`, {
           email: loginDto.email,
           error: error.message,
-          user,
+          loggedUser,
         });
       } else {
-        logger.error(`${this.logFileName} login API error: Unknown error occurred`, { user });
+        logger.warn(`${this.logFileName} login API error: Unknown error occurred`, { loggedUser });
       }
       next(error);
     }
@@ -50,25 +53,30 @@ export class AuthController {
    */
   register = async (req: CustomRequest, res: Response, next: NextFunction): Promise<void> => {
     const registerDto: RegisterDto = req.body;
-    const { user } = req;
-    logger.info(`${this.logFileName} Register API invoked`, { email: registerDto.email, user });
+    const { loggedUser } = req;
+    logger.info(`${this.logFileName} Register API invoked`, {
+      email: registerDto.email,
+      loggedUser,
+    });
 
     try {
       const result = await this.authService.register(registerDto);
       logger.info(`${this.logFileName} User registration successful`, {
         email: registerDto.email,
-        user,
+        loggedUser,
       });
       res.json(result);
     } catch (error) {
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} Register API error`, {
+        logger.warn(`${this.logFileName} Register API error`, {
           email: registerDto.email,
           error: error.message,
-          user,
+          loggedUser,
         });
       } else {
-        logger.error(`${this.logFileName} Register API error: Unknown error occurred`, { user });
+        logger.warn(`${this.logFileName} Register API error: Unknown error occurred`, {
+          loggedUser,
+        });
       }
       next(error);
     }
@@ -82,22 +90,22 @@ export class AuthController {
    */
   logout = async (req: CustomRequest, res: Response, next: NextFunction): Promise<void> => {
     const token = req.headers.authorization?.split(" ")[1];
-    const { user } = req;
-    logger.info(`${this.logFileName} Logout API invoked`, { token, user });
+    const { loggedUser } = req;
+    logger.info(`${this.logFileName} Logout API invoked`, { token, loggedUser });
 
     try {
       const result = await this.authService.logout(token!);
-      logger.info(`${this.logFileName} User logout successful`, { token, user });
+      logger.info(`${this.logFileName} User logout successful`, { token, loggedUser });
       res.json(result);
     } catch (error) {
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} Logout API error`, {
+        logger.warn(`${this.logFileName} Logout API error`, {
           token,
           error: error.message,
-          user,
+          loggedUser,
         });
       } else {
-        logger.error(`${this.logFileName} Logout API error: Unknown error occurred`, { user });
+        logger.warn(`${this.logFileName} Logout API error: Unknown error occurred`, { loggedUser });
       }
       next(error);
     }
@@ -111,22 +119,24 @@ export class AuthController {
    */
   extendToken = async (req: CustomRequest, res: Response, next: NextFunction): Promise<void> => {
     const token = req.headers.authorization?.split(" ")[1];
-    const { user } = req;
-    logger.info(`${this.logFileName} ExtendToken API invoked`, { token, user });
+    const { loggedUser } = req;
+    logger.info(`${this.logFileName} ExtendToken API invoked`, { token, loggedUser });
 
     try {
       const newToken = await this.authService.extendToken(token!);
-      logger.info(`${this.logFileName} Token extended successfully`, { newToken, user });
+      logger.info(`${this.logFileName} Token extended successfully`, { newToken, loggedUser });
       res.json({ token: newToken });
     } catch (error) {
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} ExtendToken API error`, {
+        logger.warn(`${this.logFileName} ExtendToken API error`, {
           token,
           error: error.message,
-          user,
+          loggedUser,
         });
       } else {
-        logger.error(`${this.logFileName} ExtendToken API error: Unknown error occurred`, { user });
+        logger.warn(`${this.logFileName} ExtendToken API error: Unknown error occurred`, {
+          loggedUser,
+        });
       }
       next(error);
     }
@@ -140,26 +150,26 @@ export class AuthController {
    */
   forgotPassword = async (req: CustomRequest, res: Response, next: NextFunction): Promise<void> => {
     const { email } = req.body;
-    const { user } = req;
-    logger.info(`${this.logFileName} Forgot password API invoked`, { email, user });
+    const { loggedUser } = req;
+    logger.info(`${this.logFileName} Forgot password API invoked`, { email, loggedUser });
 
     try {
       const message = await this.authService.forgotPassword(email);
       logger.info(`${this.logFileName} Forgot password successful`, {
         email,
-        user,
+        loggedUser,
       });
       res.json(message);
     } catch (error) {
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} Forgot password API error`, {
+        logger.warn(`${this.logFileName} Forgot password API error`, {
           email,
           error: error.message,
-          user,
+          loggedUser,
         });
       } else {
-        logger.error(`${this.logFileName} Forgot password API error: Unknown error occurred`, {
-          user,
+        logger.warn(`${this.logFileName} Forgot password API error: Unknown error occurred`, {
+          loggedUser,
         });
       }
       next(error);
@@ -173,33 +183,32 @@ export class AuthController {
    * @param next - Next middleware function
    */
   resetPassword = async (req: CustomRequest, res: Response, next: NextFunction): Promise<void> => {
-    const { authorization } = req.headers;
-    const { email, currentPassword, password } = req.body;
-    const { user } = req;
-    logger.info(`${this.logFileName} Reset password API invoked`, { email, user });
+    const { resetToken, password, confirmPassword } = req.body;
+    const { loggedUser } = req;
+    logger.info(`${this.logFileName} Reset password API invoked`, { resetToken, loggedUser });
 
+    const resetPasswordDto: ResetPasswordDto = {
+      password: password as string,
+      confirmPassword: confirmPassword as string,
+      resetToken: resetToken as string,
+    };
     try {
-      const message = await this.authService.resetPassword(
-        authorization,
-        email,
-        currentPassword,
-        password,
-      );
+      const message = await this.authService.resetPassword(resetPasswordDto);
       logger.info(`${this.logFileName} Reset password successful`, {
-        email,
-        user,
+        resetToken,
+        loggedUser,
       });
       res.json(message);
     } catch (error) {
       if (error instanceof Error) {
-        logger.error(`${this.logFileName} Reset password API error`, {
-          email,
+        logger.warn(`${this.logFileName} Reset password API error`, {
+          resetToken,
           error: error.message,
-          user,
+          loggedUser,
         });
       } else {
-        logger.error(`${this.logFileName} Reset password API error: Unknown error occurred`, {
-          user,
+        logger.warn(`${this.logFileName} Reset password API error: Unknown error occurred`, {
+          loggedUser,
         });
       }
       next(error);

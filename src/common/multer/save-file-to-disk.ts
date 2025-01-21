@@ -18,7 +18,8 @@ export const saveFileToDisk = async (file: any) => {
 
     fs.writeFile(filePath, fileBuffer, (err) => {
       if (err) {
-        console.error("Error saving file to disk:", err);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        logger.warn("Error saving file to disk:", err as any);
         throw new Error("Failed to save file.");
       }
 
@@ -27,7 +28,7 @@ export const saveFileToDisk = async (file: any) => {
     return { fileName, filePath };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
-    logger.error("Error saving file:", error);
+    logger.warn("Error saving file:", error);
     throw new Error("Failed to save file.");
   }
 };
